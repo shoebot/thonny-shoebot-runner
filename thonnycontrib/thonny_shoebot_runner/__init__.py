@@ -113,8 +113,8 @@ class ShoebotSbot:
             menu_name="tools",
             command_label="Execute with shoebot's sbot command",
             handler=self.run_with_sbot,
-            default_sequence="<Control-Alt-e>",
-            extra_sequences=["<<CtrlAltCInText>>"],
+            default_sequence="<Control-Alt-b>",
+            extra_sequences=["<<CtrlAltBInText>>"],
         )
 
 

@@ -94,7 +94,7 @@ class ShoebotSbot:
                     else:
                         self.editor._load_file(self.filename, keep_undo=True)
                         final_title = 'Done'
-                        final_message = message_without_emojis.splitlines()[-1]  
+                        final_message = message_without_emojis
             else:
                 final_title = NOT_COMPATIBLE.error_type
                 final_message = NOT_COMPATIBLE.description

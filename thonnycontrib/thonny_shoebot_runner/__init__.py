@@ -98,8 +98,8 @@ class ShoebotSbot:
             else:
                 final_title = NOT_COMPATIBLE.error_type
                 final_message = NOT_COMPATIBLE.description
-
-        showinfo(title=final_title, message=final_message)
+        if final_message:
+            showinfo(title=final_title, message=final_message)
 
     def load_plugin(self) -> None:
         """

@@ -6,20 +6,23 @@ from collections import namedtuple
 from tkinter.messagebox import showinfo
 from thonny import get_workbench
 
-name = "thonny-shoebot-runner"
+name = 'thonny-shoebot-runner'
 
-ErrorMessage = namedtuple("ErrorMessage", ["error_type", "description"])
+ErrorMessage = namedtuple('ErrorMessage', ['error_type', 'description'])
 
-SUCCESS = "All done!"
+SUCCESS = 'All done!'
 
-NO_TEXT_TO_FORMAT = ErrorMessage("Nothing to do here", "There is no bot to execute.")
+NO_TEXT_TO_FORMAT = ErrorMessage(
+    'Nothing to do here',
+    'There is no bot to execute.'
+)
 PACKAGE_NOT_FOUND = ErrorMessage(
-    "Package not found",
-    "Could not find shoebot/sbot. Is it installed and on your PATH?",
+    'Package not found',
+    'Could not find shoebot/sbot. Is it installed and on your PATH?',
 )
 NOT_COMPATIBLE = ErrorMessage(
-    "File not compatible!",
-    "Looks like this is not a Python file. Did you already save it?",
+    'File not compatible!',
+    'Looks like this is not a Python file. Did you already save it?',
 )
 
 # Temporary fix: this function comes from thonny.running, but importing that
@@ -34,11 +37,11 @@ def get_interpreter_for_subprocess(candidate=None):
     if candidate is None:
         candidate = sys.executable
 
-    pythonw = candidate.replace("python.exe", "pythonw.exe")
+    pythonw = candidate.replace('python.exe', 'pythonw.exe')
     if not _console_allocated and os.path.exists(pythonw):
         return pythonw
     else:
-        return candidate.replace("pythonw.exe", "python.exe")
+        return candidate.replace('pythonw.exe', 'python.exe')
 
 
 class ShoebotSbot:
@@ -65,12 +68,15 @@ class ShoebotSbot:
             final_title = NO_TEXT_TO_FORMAT.error_type
             final_message = NO_TEXT_TO_FORMAT.description
         else:
-            if self.filename is not None and self.filename[-3:] in (".py", "bot"):
+            if self.filename is not None and self.filename.split('.')[-1:] in (
+                'py',
+                'bot',
+            ):
                 self.editor.save_file()
 
                 run_sbot = subprocess.run(
-                  #  [get_interpreter_for_subprocess(), "-m", "black", self.filename, "-S"],
-                    ["sbot", self.filename], 
+                    #  [get_interpreter_for_subprocess(), "-m", "black", self.filename, "-S"],
+                    ['sbot', self.filename],
                     capture_output=True,
                     text=True,
                 )
@@ -80,21 +86,21 @@ class ShoebotSbot:
                     final_message = PACKAGE_NOT_FOUND.description
                 else:
                     # Emojis are not supported in Tkinter.
-                    message_without_emojis = run_sbot.stderr.encode(
-                        'ascii', 'ignore'
-                    ).decode()
+                    emojiless_message = run_sbot.stderr.encode('ascii', 'ignore').decode()
                     if run_sbot.returncode != 0:
                         final_title = 'Oh no!'
                         final_message = '\n'.join(
-                            message_without_emojis.splitlines()[::2]
+                            emojiless_message.splitlines()[::2]
                         )
 
-                        final_message = final_message[0].upper() + final_message[1:]
+                        final_message = (
+                            final_message[0].upper() + final_message[1:]
+                        )
 
                     else:
                         self.editor._load_file(self.filename, keep_undo=True)
                         final_title = 'Done'
-                        final_message = message_without_emojis
+                        final_message = emojiless_message
             else:
                 final_title = NOT_COMPATIBLE.error_type
                 final_message = NOT_COMPATIBLE.description
@@ -109,12 +115,12 @@ class ShoebotSbot:
         with all the given arguments.
         """
         self.workbench.add_command(
-            command_id="run_with_sbot",
-            menu_name="tools",
+            command_id='run_with_sbot',
+            menu_name='tools',
             command_label="Execute with shoebot's sbot command",
             handler=self.run_with_sbot,
-            default_sequence="<Control-Alt-b>",
-            extra_sequences=["<<CtrlAltBInText>>"],
+            default_sequence='<Control-Alt-b>',
+            extra_sequences=['<<CtrlAltBInText>>'],
         )
 
 

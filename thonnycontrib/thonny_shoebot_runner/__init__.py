@@ -33,15 +33,15 @@ NOT_COMPATIBLE = ErrorMessage(
 _console_allocated = False
 
 
-def get_interpreter_for_subprocess(candidate=None):
-    if candidate is None:
-        candidate = sys.executable
-
-    pythonw = candidate.replace('python.exe', 'pythonw.exe')
-    if not _console_allocated and os.path.exists(pythonw):
-        return pythonw
-    else:
-        return candidate.replace('pythonw.exe', 'python.exe')
+# def get_interpreter_for_subprocess(candidate=None):
+#     if candidate is None:
+#         candidate = sys.executable
+# 
+#     pythonw = candidate.replace('python.exe', 'pythonw.exe')
+#     if not _console_allocated and os.path.exists(pythonw):
+#         return pythonw
+#     else:
+#         return candidate.replace('pythonw.exe', 'python.exe')
 
 
 class ShoebotSbot:
@@ -124,5 +124,5 @@ class ShoebotSbot:
         )
 
 
-if get_workbench() is not None:
+if get_workbench():
     run = ShoebotSbot().load_plugin()

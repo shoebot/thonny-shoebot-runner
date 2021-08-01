@@ -68,7 +68,7 @@ class ShoebotSbot:
             final_title = NO_TEXT_TO_FORMAT.error_type
             final_message = NO_TEXT_TO_FORMAT.description
         else:
-            if self.filename is not None and self.filename.split('.')[-1:] in (
+            if self.filename is not None and self.filename.split('.')[-1] in (
                 'py',
                 'bot',
             ):

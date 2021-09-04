@@ -1,128 +1,115 @@
-import subprocess
-import sys
+'''
+thonny-shoebotmode.
+
+shoebot plugin for Thonny.
+
+# NOTES TO SELF:
+* documentation: https://github.com/thonny/thonny/wiki/Plugins
+* maybe look at how Run > Pygame Zero Mode is programmed?
+'''
+
 import os
-from collections import namedtuple
-
+import pathlib
+import shutil
+import subprocess
+import site
+import sys
+import threading
+import time
 from tkinter.messagebox import showinfo
-from thonny import get_workbench
+from thonny.languages import tr
+from thonny import get_workbench, THONNY_USER_DIR
+from thonny import running
+from thonny.ui_utils import select_sequence
 
-name = 'thonny-shoebot-runner'
-
-ErrorMessage = namedtuple('ErrorMessage', ['error_type', 'description'])
-
-SUCCESS = 'All done!'
-
-NO_TEXT_TO_FORMAT = ErrorMessage(
-    'Nothing to do here',
-    'There is no bot to execute.'
-)
-PACKAGE_NOT_FOUND = ErrorMessage(
-    'Package not found',
-    'Could not find shoebot/sbot. Is it installed and on your PATH?',
-)
-NOT_COMPATIBLE = ErrorMessage(
-    'File not compatible!',
-    'Looks like this is not a Python file. Did you already save it?',
-)
-
-# Temporary fix: this function comes from thonny.running, but importing that
-# module may conflict with outdated Thonny installations from some Linux
-# repositories.
-# TODO: change this with thonny.running.get_interpreter_for_subprocess when
-# possible and change Thonny version required.
-_console_allocated = False
+__author__ = 'villares'
+__credits__ = 'organisation name'
 
 
-# def get_interpreter_for_subprocess(candidate=None):
-#     if candidate is None:
-#         candidate = sys.executable
-# 
-#     pythonw = candidate.replace('python.exe', 'pythonw.exe')
-#     if not _console_allocated and os.path.exists(pythonw):
-#         return pythonw
-#     else:
-#         return candidate.replace('pythonw.exe', 'python.exe')
+def execute_module_mode() -> None:
+    '''
+    there's got to be a better approach than this ...
+    maybe something that employs a new Runner instance
+    maybe something that changes the thonny's default run behaviour
+    '''
+    current_editor = get_workbench().get_editor_notebook().get_current_editor()
+    current_file = current_editor.get_filename()
 
-
-class ShoebotSbot:
-    """
-    Call shoebot's sbot command with the open source code document as argument
-
-    Using subprocess, sbot is executed to run .bot or .py files displayed in
-    Thonny. Whenever this plugin is executed, run_with_sbot is called. Depending
-    on the result, final_title and final_message is displayed through
-    tkinter.messagebox.showinfo().
-    """
-
-    def __init__(self) -> None:
-        """Get the workbench to be later used to detect the file to format."""
-        self.workbench = get_workbench()
-
-    def run_with_sbot(self) -> None:
-        """Handle the plugin execution."""
-        self.editor = self.workbench.get_editor_notebook().get_current_editor()
-
-        try:
-            self.filename = self.editor.get_filename()
-        except AttributeError:
-            final_title = NO_TEXT_TO_FORMAT.error_type
-            final_message = NO_TEXT_TO_FORMAT.description
-        else:
-            if self.filename is not None and self.filename.split('.')[-1] in (
-                'py',
-                'bot',
-            ):
-                self.editor.save_file()
-
-                run_sbot = subprocess.run(
-                    #  [get_interpreter_for_subprocess(), "-m", "black", self.filename, "-S"],
-                    ['sbot', self.filename],
-                    capture_output=True,
-                    text=True,
-                )
-
-                if run_sbot.stderr.find('No sbot found!') != -1:
-                    final_title = PACKAGE_NOT_FOUND.error_type
-                    final_message = PACKAGE_NOT_FOUND.description
-                else:
-                    # Emojis are not supported in Tkinter.
-                    emojiless_message = run_sbot.stderr.encode('ascii', 'ignore').decode()
-                    if run_sbot.returncode != 0:
-                        final_title = 'Oh no!'
-                        final_message = '\n'.join(
-                            emojiless_message.splitlines()[::2]
-                        )
-
-                        final_message = (
-                            final_message[0].upper() + final_message[1:]
-                        )
-
-                    else:
-                        self.editor._load_file(self.filename, keep_undo=True)
-                        final_title = 'Done'
-                        final_message = emojiless_message
-            else:
-                final_title = NOT_COMPATIBLE.error_type
-                final_message = NOT_COMPATIBLE.description
-        if final_message:
-            showinfo(title=final_title, message=final_message)
-
-    def load_plugin(self) -> None:
-        """
-        Load the plugin on runtime.
-
-        Using self.workbench.add_command(), the plugin is registered in Thonny
-        with all the given arguments.
-        """
-        self.workbench.add_command(
-            command_id='run_with_sbot',
-            menu_name='tools',
-            command_label="Execute with shoebot's sbot command",
-            handler=self.run_with_sbot,
-            default_sequence='<Control-Alt-b>',
-            extra_sequences=['<<CtrlAltBInText>>'],
+    if current_file is None:
+        # thonny must 'save as' any new files, before it can run them
+        showinfo(
+          'shoebot module mode error',
+          'Save your file somewhere first',
+          master=get_workbench()
         )
 
+    elif current_file and current_file.split('.')[-1] in ('py', 'shoebot', 'bot'):
+        # save and run shoebot module mode
+        current_editor.save_file()
+        run_sketch = 'sbot'
 
-if get_workbench():
-    run = ShoebotSbot().load_plugin()
+#         run_sketch = '/home/villares/.local/bin/sbot'
+        user_packages = str(site.getusersitepackages())
+        site_packages = str(site.getsitepackages()[0])
+        # check for shoebot run_sketch path
+        if pathlib.Path(user_packages + run_sketch).is_file():
+            run_sketch = pathlib.Path(user_packages + run_sketch)
+        elif pathlib.Path(site_packages + run_sketch).is_file():
+            run_sketch = pathlib.Path(site_packages + run_sketch)
+
+        working_directory = os.path.dirname(current_file)
+        cd_cmd_line = running.construct_cd_command(working_directory) + '\n'
+        cmd_parts = ['%Run', str(run_sketch), current_file]
+        ed_token = [running.EDITOR_CONTENT_TOKEN]
+        exe_cmd_line = running.construct_cmd_line(cmd_parts, ed_token) + '\n'
+        running.get_shell().submit_magic_command(cd_cmd_line + exe_cmd_line)
+
+
+# workaround for .add_command() handler parameter that won't accept arguments
+def toggle_variable_portable() -> None: toggle_variable('portable')
+def toggle_variable_installed() -> None: toggle_variable('installed')
+
+
+def toggle_variable(install_type: str) -> None:
+    '''install_type is portable or installed'''
+    var_portable = get_workbench().get_variable('run.shoebot_mode_portable')
+    var_installed = get_workbench().get_variable('run.shoebot_mode_installed')
+
+    if install_type == 'portable':
+        var_installed.set(False)
+        var_portable.set(not var_portable.get())
+
+    if install_type == 'installed':
+        var_portable.set(False)
+        var_installed.set(not var_installed.get())
+
+    # NOTE: don't know what this is for
+    # if get_workbench().in_simple_mode():
+    #     os.environ['shoebot_MODE'] = 'auto'
+    # else:
+    #     os.environ['shoebot_MODE'] = str(get_workbench().get_option(_OPTION_...))
+
+    if var_portable.get() or var_installed.get():
+        # activate shoebot (and download jdk if necessary)
+        activate_shoebot(install_type)
+
+
+def load_plugin() -> None:
+    '''every thonny plug-in uses this function to load'''
+    # portable button
+    '''
+ 
+ 
+    '''
+    # non-portable / installed button
+    # NOTE: perhaps this should be a toggle that in-turn affects thonny run?
+    get_workbench().add_command(
+    command_id='run_with_sbot',
+    menu_name='tools',
+    command_label="Execute with shoebot's sbot command",
+    handler=execute_module_mode,
+    default_sequence='<Control-b>',
+    extra_sequences=[select_sequence('<Control-Alt-b>', '<Command-b>')],
+    )
+
+

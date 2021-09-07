@@ -58,6 +58,27 @@ class ShoebotSbot:
         """Get the workbench to be later used to detect the file to format."""
         self.workbench = get_workbench()
 
+    def open_folder(self) -> None:
+        """Open the enclosing folder to the current file."""
+        import subprocess
+        import platform
+        self.editor = self.workbench.get_editor_notebook().get_current_editor()
+        try:
+            filename = self.editor.get_filename()
+        except AttributeError:
+            print("Have you checked if have an open file?")
+            return
+        else:
+            path = os.path.dirname(filename)
+            print(sys.platform)
+        if sys.platform == 'darwin':
+            subprocess.Popen(['open', path])
+        elif sys.platform == 'linux':
+            subprocess.Popen(["xdg-open", path])
+        else: # 'win32'
+            # os.startfile(path) # I should test someday
+            subprocess.Popen(["explorer", path])
+
     def run_with_sbot(self) -> None:
         """Handle the plugin execution."""
         self.editor = self.workbench.get_editor_notebook().get_current_editor()
@@ -122,7 +143,14 @@ class ShoebotSbot:
             default_sequence='<Control-Alt-b>',
             extra_sequences=['<<CtrlAltBInText>>'],
         )
-
+        self.workbench.add_command(
+            command_id='open_folder',
+            menu_name='tools',
+            command_label="Open enclosing folder",
+            handler=self.open_folder,
+            default_sequence='<Control-k>',
+            extra_sequences=['<<CtrlKInText>>'],
+        )
 
 if get_workbench():
     run = ShoebotSbot().load_plugin()

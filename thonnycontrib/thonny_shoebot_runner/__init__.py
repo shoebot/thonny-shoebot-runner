@@ -148,8 +148,8 @@ class ShoebotSbot:
             menu_name='tools',
             command_label="Open enclosing folder",
             handler=self.open_folder,
-            default_sequence='<Control-k>',
-            extra_sequences=['<<CtrlKInText>>'],
+            default_sequence='<Alt-k>',
+            extra_sequences=['<<AltKInText>>'],
         )
 
 if get_workbench():
